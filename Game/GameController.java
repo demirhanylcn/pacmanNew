@@ -24,124 +24,28 @@ public class GameController {
         this.model = model;
     }
     public void showGame(){
+
         model.initGame();
         model.setActive(true);
         view.showGame();
-        Thread th = new Thread(() -> {
-            while (model.isActive()) {
-                try {
-                    for (GameCharacter gameCharacter: model.getPlayers()) {
-                        long currentTime = System.currentTimeMillis();
-                        if(currentTime - gameCharacter.getLastMillisecondsUpdate() <= gameCharacter.getSpeed()) continue;
-                        gameCharacter.update(model);
-                        Cell cell = model.getBoard()[gameCharacter.getRow()][gameCharacter.getColumn()];
-                        if(gameCharacter instanceof Pacman && cell  instanceof CellPoint){
-                            Cell empty = new CellEmpty(gameCharacter.getRow(),gameCharacter.getColumn());
-                            view.setCellValue(empty, gameCharacter.getRow(), gameCharacter.getColumn());
-                            model.board.cells[gameCharacter.getRow()][gameCharacter.getColumn()] = empty;
-                            addScore(100);
-                            view.updateScore();
-                        }
 
-                        if(gameCharacter instanceof Pacman && cell instanceof CellUpgrade upgrageCell){
-                            Cell empty = new CellEmpty(gameCharacter.getRow(),gameCharacter.getColumn());
-                            view.setCellValue(empty, gameCharacter.getRow(), gameCharacter.getColumn());
-                            model.board.cells[gameCharacter.getRow()][gameCharacter.getColumn()] = empty;
-                            model.getUpgrades().add(upgrageCell.getUpgrade());
-                            upgrageCell.getUpgrade().setLastTimeMillis(System.currentTimeMillis());
-                            upgrageCell.getUpgrade().start(model);
-                            view.updateBottomPanel();
-                        }
-                    }
-                    if(gameEnd()){
-                        stopGame();
-                    }
-                    if(model.getPlayerAroundPacman() && model.getUpgrades().stream().noneMatch(x-> x instanceof UpgradeImmortality || x instanceof UpgradeAll)){
-                        model.setHealth(model.getHealth()-1);
-                        model.resetPlayer();
-                        view.updateBottomPanel();
-                    }
-                    if(model.getHealth()<=0){
-                        stopGame();
-                    }
-                }
-                catch (Exception e){
-                    //
-                }
-            }
-        });
-        gameThreads.add(th);
-        th.start();
-        Thread updateTable = new Thread(() -> {
-            while (model.isActive()) {
-                try {
-                    view.repaintBoard();
-                    Thread.sleep(1000 / 60);
-                } catch (InterruptedException e) {
-                    //
-                }
-            }
-        });
-        updateTable.start();
-        gameThreads.add(updateTable);
 
-        Thread spawnUpgrades = new Thread(() -> {
-            Random random = new Random();
-            while (model.isActive()) {
-                try {
-                    Thread.sleep(3000);
-                    int n = random.nextInt(100);
-                    if(n<=25) continue;
-                    int[] upgradesIntArr = new int[]{ 1, 2,3,4,5};
-                    int randUpgrade = upgradesIntArr[random.nextInt(upgradesIntArr.length)];
-                    Upgrade upgrade;
-                    if(randUpgrade == 1){
-                        upgrade = new UpgradeSpeed();
-                    }else if(randUpgrade == 2){
-                        upgrade = new UpgradeImmortality();
-                    }
-                    else if(randUpgrade == 3){
-                        upgrade = new UpgradePointDouble();
-                    }
-                    else if (randUpgrade == 4) {
-                        upgrade = new UpgradePointTriple();
-                    } else upgrade = new UpgradeAll();
-                    List<GameCharacter> characters = model.getPlayers().stream().filter(player -> !(player instanceof Pacman)).toList();
-                    GameCharacter character = characters.get(random.nextInt(characters.size()));
-                    CellUpgrade cellUpgrade = new CellUpgrade(character.getRow(), character.getColumn(), upgrade);
-                    view.setCellValue(cellUpgrade, character.getRow(), character.getColumn());
-                    model.board.cells[character.getRow()][character.getColumn()] = cellUpgrade;
-                } catch (Exception e) {
-                    //
-                }
-            }
-        });
+        Thread gameThread = new Thread(this::game);
+        gameThreads.add(gameThread);
+        gameThread.start();
+
+
+        Thread updateTableThread = new Thread(this::updateTable);
+        updateTableThread.start();
+        gameThreads.add(updateTableThread);
+
+
+        Thread spawnUpgrades = new Thread(this::spawnUpgrades);
         spawnUpgrades.start();
         gameThreads.add(spawnUpgrades);
 
 
-        Thread calculatorUpgrades = new Thread(()->{
-            while (model.isActive()) {
-                List<Upgrade> toRemove = new ArrayList<>();
-                for (Upgrade upgrade : model.getUpgrades()) {
-                    long currentTime = System.currentTimeMillis();
-                    if (currentTime - upgrade.getLastTimeMillis() <= upgrade.getDuration()) continue;
-                    upgrade.reset(model);
-                    toRemove.add(upgrade);
-                }
-                boolean updateBottomPanel = !toRemove.isEmpty();
-                model.getUpgrades().removeAll(toRemove);
-                if (updateBottomPanel) {
-                    view.updateBottomPanel();
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    //
-                }
-
-            }
-        });
+        Thread calculatorUpgrades = new Thread(this::calculateUpgrades);
         calculatorUpgrades.start();
         gameThreads.add(calculatorUpgrades);
 
@@ -151,12 +55,178 @@ public class GameController {
             }
         }
     }
+
+    private void game() {
+        while (model.isActive()) {
+            try {
+
+                for (GameCharacter gameCharacter : model.getPlayers()) {
+                    long currentTime = System.currentTimeMillis();
+
+                    if (currentTime - gameCharacter.getLastMillisecondsUpdate() <= gameCharacter.getSpeed()) {
+                        continue;
+                    }
+
+                    gameCharacter.update(model);
+                    Cell currentCell = model.getBoard()[gameCharacter.getRow()][gameCharacter.getColumn()];
+
+                    if (gameCharacter instanceof Pacman && currentCell instanceof CellPoint) {
+                        earnPoint(gameCharacter);
+                    }
+
+                    if (gameCharacter instanceof Pacman && currentCell instanceof CellUpgrade) {
+                        addUpgrade(gameCharacter, (CellUpgrade) currentCell);
+                    }
+                }
+                handlePlayerHealth();
+                handleGameEnd();
+
+
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+    }
+
+    private void earnPoint(GameCharacter pacman) {
+        Cell emptyCell = new CellEmpty(pacman.getRow(), pacman.getColumn());
+        view.setCellValue(emptyCell, pacman.getRow(), pacman.getColumn());
+        model.board.cells[pacman.getRow()][pacman.getColumn()] = emptyCell;
+        addScore(100);
+        view.updateScore();
+    }
+
+    private void addUpgrade(GameCharacter pacman, CellUpgrade upgradeCell) {
+        Cell emptyCell = new CellEmpty(pacman.getRow(), pacman.getColumn());
+        view.setCellValue(emptyCell, pacman.getRow(), pacman.getColumn());
+        model.board.cells[pacman.getRow()][pacman.getColumn()] = emptyCell;
+
+        model.getUpgrades().add(upgradeCell.getUpgrade());
+        upgradeCell.getUpgrade().setLastTimeMillis(System.currentTimeMillis());
+        upgradeCell.getUpgrade().start(model);
+
+        view.updateBottomPanel();
+    }
+    private void handleGameEnd() {
+        if (gameEnd()) {
+            stopGame();
+        }
+    }
+
+    private void handlePlayerHealth() {
+        if (model.getIfGhostTouchedPacman() && model.getUpgrades().stream().noneMatch(x -> x instanceof UpgradeImmortality || x instanceof UpgradeAll)) {
+            model.setHealth(model.getHealth()-1);
+            model.resetPlayer();
+            view.updateBottomPanel();
+        }
+
+        if (model.getHealth() <= 0) {
+            stopGame();
+        }
+    }
+    private void updateTable() {
+        while (model.isActive()) {
+            try {
+                view.repaintBoard();
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                System.out.println(e);
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+    private void calculateUpgrades() {
+        while (model.isActive()) {
+            try {
+                List<Upgrade> toRemove = new ArrayList<>();
+
+                for (Upgrade upgrade : model.getUpgrades()) {
+                    long currentTime = System.currentTimeMillis();
+
+                    if (currentTime - upgrade.getLastTimeMillis() <= upgrade.getDuration()) continue;
+
+                    upgrade.reset(model);
+                    toRemove.add(upgrade);
+                }
+
+                boolean updateBottomPanel = !toRemove.isEmpty();
+                model.getUpgrades().removeAll(toRemove);
+
+                if (updateBottomPanel) {
+                    view.updateBottomPanel();
+                }
+
+                Thread.sleep(100);
+
+            } catch (InterruptedException e) {
+                System.out.println(e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+    }
+    private void spawnUpgrades() {
+        Random randomGenerator = new Random();
+
+        while (model.isActive()) {
+            try {
+
+                Thread.sleep(5000);
+                int randomNumber = randomGenerator.nextInt(100);
+                if (randomNumber <= 25) {
+                    int[] availableUpgrades = new int[]{1, 2, 3, 4, 5};
+                    int selectedUpgradeIndex = randomGenerator.nextInt(availableUpgrades.length);
+                    int selectedUpgradeId = availableUpgrades[selectedUpgradeIndex];
+
+                    Upgrade selectedUpgrade;
+
+                    switch (selectedUpgradeId) {
+                        case 1:
+                            selectedUpgrade = new UpgradeSpeed();
+                            break;
+                        case 2:
+                            selectedUpgrade = new UpgradeImmortality();
+                            break;
+                        case 3:
+                            selectedUpgrade = new UpgradePointDouble();
+                            break;
+                        case 4:
+                            selectedUpgrade = new UpgradePointTriple();
+                            break;
+                        default:
+                            selectedUpgrade = new UpgradeAll();
+                            break;
+                    }
+
+                    List<GameCharacter> characters = model.getPlayers().stream()
+                            .filter(player -> !(player instanceof Pacman))
+                            .toList();
+
+                    GameCharacter selectedCharacter = characters.get(randomGenerator.nextInt(characters.size()));
+
+                    CellUpgrade upgradeCell = new CellUpgrade(selectedCharacter.getRow(), selectedCharacter.getColumn(), selectedUpgrade);
+
+                    view.setCellValue(upgradeCell, selectedCharacter.getRow(), selectedCharacter.getColumn());
+                    model.board.cells[selectedCharacter.getRow()][selectedCharacter.getColumn()] = upgradeCell;
+
+
+                }
+            } catch (InterruptedException e) {
+                System.out.println(e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+    }
+
     public void setPacmanDirection(Inputs inputs){
         Pacman pacman = model.getPacman();
         pacman.setDirection(inputs);
     }
     public void stopGame(){
-        String name = view.askName();
+        String name = GameView.askName();
         scoreController.save(name, model.getScore());
         view.setVisible(false);
         gameThreads.forEach(Thread::interrupt);

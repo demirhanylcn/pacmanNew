@@ -14,9 +14,13 @@ public class ScoreView extends JFrame {
         scroll.setViewportView(list);
         list.setLayoutOrientation(JList.VERTICAL);
         list.setBackground(Color.BLACK);
-        list.setForeground(Color.WHITE);
+        list.setForeground(Color.blue);
         list.setFont(new Font("Monospaced", Font.PLAIN, 25));
         add(scroll);
+
+        ImageIcon icon = new ImageIcon("src/resources/blueGhostDown.png");
+        setIconImage(icon.getImage());
+
         setSize(600, 600);
         setTitle("Scores");
         setLocationRelativeTo(null);

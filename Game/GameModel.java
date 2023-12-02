@@ -59,20 +59,29 @@ public class GameModel {
     }
 
     public Pacman getPacman() {
-        return (Pacman) players.stream().filter(player -> player instanceof Pacman).findFirst().orElse(null);
+        return players.stream()
+                .filter(player -> player instanceof Pacman)
+                .map(player -> (Pacman) player)
+                .findFirst()
+                .orElse(null);
     }
 
     public Cell[][] getBoard() {
         return board.getCells();
     }
 
-    public boolean getPlayerAroundPacman() {
+    public boolean getIfGhostTouchedPacman() {
         Pacman pacman = getPacman();
 
-        int row = pacman.getRow();
-        int column = pacman.getColumn();
+        if (pacman != null) {
+            int row = pacman.getRow();
+            int column = pacman.getColumn();
 
-        return players.stream().anyMatch(x -> !(x instanceof Pacman) && x.getRow() == row && x.getColumn() == column);
+            return players.stream()
+                    .anyMatch(player -> !(player instanceof Pacman) && player.getRow() == row && player.getColumn() == column);
+        }
+
+        return false;
     }
 
     public boolean isActive() {
@@ -114,6 +123,7 @@ public class GameModel {
     public List<Upgrade> getUpgrades() {
         return upgrades;
     }
+
 
 }
 

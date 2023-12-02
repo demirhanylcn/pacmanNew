@@ -23,6 +23,10 @@ public class GameView extends JFrame {
         updateBottomPanel();
         setTitle("Pac-Man");
         JPanel upPanel = new JPanel(new FlowLayout());
+
+        ImageIcon icon = new ImageIcon("src/resources/redGhostLeft.png");
+        setIconImage(icon.getImage());
+
         score = new JLabel("", SwingConstants.CENTER);
         score.setForeground(Color.WHITE);
         upPanel.add(score);
@@ -99,8 +103,37 @@ public class GameView extends JFrame {
         addBonusIcons(bonuses);
     }
 
-    public String askName() {
-        return JOptionPane.showInputDialog("what is your nickname");
+    public static String askName() {
+        JTextField textField = new JTextField();
+        textField.setFont(new Font("Arial", Font.PLAIN, 14));
+
+        JPanel panel = new JPanel(new GridLayout(2, 1));
+        panel.setBackground(Color.ORANGE);
+
+        JLabel label = new JLabel("Enter your nickname:");
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+
+        panel.add(label);
+        panel.add(textField);
+
+        ImageIcon icon = new ImageIcon("src/resources/orangeGhostRight.png");
+
+        int option = JOptionPane.showOptionDialog(
+                null,
+                panel,
+                "Nickname",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE,
+                icon,
+                null,
+                null
+        );
+
+        if (option == JOptionPane.OK_OPTION) {
+            return textField.getText();
+        } else {
+            return null;
+        }
     }
 
     private void configureGameBoardTable(int blockSize) {

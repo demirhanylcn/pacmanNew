@@ -17,10 +17,14 @@ public class MenuView extends JFrame {
         setVisible(true);
         setSize(600, 600);
 
+        ImageIcon icon = new ImageIcon("src/resources/pinkGhostUp.png");
+        setIconImage(icon.getImage());
+
         Image background = getToolkit().createImage("src/resources/background.jpg");
         Image startGame = getToolkit().createImage("src/resources/start.png");
         Image scores = getToolkit().createImage("src/resources/highscores.jpg");
         Image exit = getToolkit().createImage("src/resources/exit.jpg");
+
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent windowEvent) {
