@@ -9,19 +9,20 @@ import java.util.List;
 
 public class GameModel {
 
-    private ArrayList<GameCharacter> players = new ArrayList<>();
-    public GameTableModel board;
-    private List<Upgrade> upgrades;
-    private boolean active;
-    private int score;
-    private int health;
+
+    private ArrayList<GameCharacter> playerList = new ArrayList<>();
+    public GameTableModel gameBoard;
+    private List<Upgrade> upgradeList;
+    private boolean isGameActive;
+    private int currentScore;
+    private int currentHealth;
 
     public GameModel() {
-        initGame();
+        initializeGame();
     }
 
 
-    private final char[][] field = {
+    private final char[][] gameFieldArr = {
             {'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w'},
             {'s', 's', 's', 's', 's', 's', 's', 's', 's', 'w', 's', 's', 's', 's', 's', 's', 's', 's', 's'},
             {'w', 's', 'w', 'w', 's', 'w', 'w', 'w', 's', 'w', 's', 'w', 'w', 'w', 's', 'w', 'w', 's', 'w'},
@@ -43,32 +44,33 @@ public class GameModel {
             {'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w'},
     };
 
-    public void initGame() {
-        score = 0;
-        health = 3;
-        upgrades = new ArrayList<>();
-
-        board = new GameTableModel(field);
-
-        resetPlayer();
-        active = false;
+    public void initializeGame() {
+        currentScore = 0;
+        currentHealth = 3;
+        upgradeList = new ArrayList<>();
+        gameBoard = new GameTableModel(gameFieldArr);
+        resetCharacters();
+        isGameActive = false;
     }
 
-    public List<GameCharacter> getPlayers() {
-        return players;
+    public List<GameCharacter> getPlayerList() {
+        return playerList;
     }
 
     public Pacman getPacman() {
-        return players.stream()
+        return playerList.stream()
                 .filter(player -> player instanceof Pacman)
                 .map(player -> (Pacman) player)
                 .findFirst()
                 .orElse(null);
     }
 
-    public Cell[][] getBoard() {
-        return board.getCells();
+    public Cell[][] getGameBoard() {
+        return gameBoard.getCells();
     }
+
+
+
 
     public boolean getIfGhostTouchedPacman() {
         Pacman pacman = getPacman();
@@ -77,54 +79,54 @@ public class GameModel {
             int row = pacman.getRow();
             int column = pacman.getColumn();
 
-            return players.stream()
-                    .anyMatch(player -> !(player instanceof Pacman) && player.getRow() == row && player.getColumn() == column);
+            for (GameCharacter character : playerList) {
+                if (!(character instanceof Pacman) && character.getColumn() == column && character.getRow() == row) return true;
+            }
         }
-
         return false;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
-    }
-
-    public int getHealth() {
-        return health;
-    }
-
-    public void setHealth(int health) {
-        this.health = health;
-    }
-
-    public void resetPlayer() {
-        players.clear();
-        upgrades.clear();
-        players.add(new Pacman(1, 1, 300));
-        players.add(new BlueGhost(6, 6, 300));
-        players.add(new RedGhost(6, 12, 300));
-        players.add(new PinkGhost(10, 6, 300));
-        players.add(new OrangeGhost(10, 12, 300));
-
 
     }
 
-    public List<Upgrade> getUpgrades() {
-        return upgrades;
+
+    public boolean isGameActive() {
+        return isGameActive;
+    }
+
+    public void setGameActive(boolean gameActive) {
+        this.isGameActive = gameActive;
+    }
+
+    public int getCurrentScore() {
+        return currentScore;
+    }
+
+    public void setCurrentScore(int currentScore) {
+        this.currentScore = currentScore;
+    }
+
+    public int getCurrentHealth() {
+        return currentHealth;
+    }
+
+    public void setCurrentHealth(int currentHealth) {
+        this.currentHealth = currentHealth;
+    }
+
+    public void resetCharacters() {
+        playerList.clear();
+        upgradeList.clear();
+        playerList.add(new Pacman(1, 1, 300));
+        playerList.add(new BlueGhost(6, 6, 300));
+        playerList.add(new RedGhost(6, 12, 300));
+        playerList.add(new PinkGhost(10, 6, 300));
+        playerList.add(new OrangeGhost(10, 12, 300));
+
+
+    }
+
+    public List<Upgrade> getUpgradeList() {
+        return upgradeList;
     }
 
 
 }
-
-

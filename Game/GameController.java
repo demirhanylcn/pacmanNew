@@ -9,6 +9,7 @@ import Characters.Pacman;
 import Inputs.Inputs;
 import Upgrades.*;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -18,17 +19,18 @@ public class GameController {
     private GameModel model;
     private List<Thread> gameThreads = new ArrayList<>();
     private ScoreController scoreController;
+
     public GameController(GameView view, GameModel model, ScoreController scoreController) {
         this.scoreController = scoreController;
         this.view = view;
         this.model = model;
     }
-    public void showGame(){
 
-        model.initGame();
-        model.setActive(true);
+    public void showGame() {
+
+        model.initializeGame();
+        model.setGameActive(true);
         view.showGame();
-
 
         Thread gameThread = new Thread(this::game);
         gameThreads.add(gameThread);
@@ -49,18 +51,18 @@ public class GameController {
         calculatorUpgrades.start();
         gameThreads.add(calculatorUpgrades);
 
-        for (Cell[] cells: model.board.getCells()) {
-            for (Cell cell: cells) {
+        for (Cell[] cells : model.gameBoard.getCells()) {
+            for (Cell cell : cells) {
                 view.setCellValue(cell, cell.getRow(), cell.getColumn());
             }
         }
     }
 
     private void game() {
-        while (model.isActive()) {
+        while (model.isGameActive()) {
             try {
 
-                for (GameCharacter gameCharacter : model.getPlayers()) {
+                for (GameCharacter gameCharacter : model.getPlayerList()) {
                     long currentTime = System.currentTimeMillis();
 
                     if (currentTime - gameCharacter.getLastMillisecondsUpdate() <= gameCharacter.getSpeed()) {
@@ -68,7 +70,7 @@ public class GameController {
                     }
 
                     gameCharacter.update(model);
-                    Cell currentCell = model.getBoard()[gameCharacter.getRow()][gameCharacter.getColumn()];
+                    Cell currentCell = model.getGameBoard()[gameCharacter.getRow()][gameCharacter.getColumn()];
 
                     if (gameCharacter instanceof Pacman && currentCell instanceof CellPoint) {
                         earnPoint(gameCharacter);
@@ -88,25 +90,28 @@ public class GameController {
         }
     }
 
+    private void updateCellAndModel(int row, int column) {
+        Cell emptyCell = new CellEmpty(row, column);
+        view.setCellValue(emptyCell, row, column);
+        model.gameBoard.cells[row][column] = emptyCell;
+    }
+
     private void earnPoint(GameCharacter pacman) {
-        Cell emptyCell = new CellEmpty(pacman.getRow(), pacman.getColumn());
-        view.setCellValue(emptyCell, pacman.getRow(), pacman.getColumn());
-        model.board.cells[pacman.getRow()][pacman.getColumn()] = emptyCell;
+        updateCellAndModel(pacman.getRow(), pacman.getColumn());
         addScore(100);
         view.updateScore();
     }
 
     private void addUpgrade(GameCharacter pacman, CellUpgrade upgradeCell) {
-        Cell emptyCell = new CellEmpty(pacman.getRow(), pacman.getColumn());
-        view.setCellValue(emptyCell, pacman.getRow(), pacman.getColumn());
-        model.board.cells[pacman.getRow()][pacman.getColumn()] = emptyCell;
+        updateCellAndModel(pacman.getRow(), pacman.getColumn());
 
-        model.getUpgrades().add(upgradeCell.getUpgrade());
+        model.getUpgradeList().add(upgradeCell.getUpgrade());
         upgradeCell.getUpgrade().setLastTimeMillis(System.currentTimeMillis());
         upgradeCell.getUpgrade().start(model);
 
         view.updateBottomPanel();
     }
+
     private void handleGameEnd() {
         if (gameEnd()) {
             stopGame();
@@ -114,33 +119,39 @@ public class GameController {
     }
 
     private void handlePlayerHealth() {
-        if (model.getIfGhostTouchedPacman() && model.getUpgrades().stream().noneMatch(x -> x instanceof UpgradeImmortality || x instanceof UpgradeAll)) {
-            model.setHealth(model.getHealth()-1);
-            model.resetPlayer();
+        if (model.getIfGhostTouchedPacman() && model.getUpgradeList().stream().noneMatch(x -> x instanceof UpgradeImmortality || x instanceof UpgradeAll)) {
+            model.setCurrentHealth(model.getCurrentHealth() - 1);
+            model.resetCharacters();
             view.updateBottomPanel();
+            view.updateBottomPanel();
+
+
         }
 
-        if (model.getHealth() <= 0) {
+
+        if (model.getCurrentHealth() <= 0) {
             stopGame();
         }
     }
+
     private void updateTable() {
-        while (model.isActive()) {
+        while (model.isGameActive()) {
             try {
                 view.repaintBoard();
-                Thread.sleep(20);
+                Thread.sleep(15);
             } catch (InterruptedException e) {
                 System.out.println(e);
                 Thread.currentThread().interrupt();
             }
         }
     }
+
     private void calculateUpgrades() {
-        while (model.isActive()) {
+        while (model.isGameActive()) {
             try {
                 List<Upgrade> toRemove = new ArrayList<>();
 
-                for (Upgrade upgrade : model.getUpgrades()) {
+                for (Upgrade upgrade : model.getUpgradeList()) {
                     long currentTime = System.currentTimeMillis();
 
                     if (currentTime - upgrade.getLastTimeMillis() <= upgrade.getDuration()) continue;
@@ -150,10 +161,10 @@ public class GameController {
                 }
 
                 boolean updateBottomPanel = !toRemove.isEmpty();
-                model.getUpgrades().removeAll(toRemove);
+                model.getUpgradeList().removeAll(toRemove);
 
                 if (updateBottomPanel) {
-                    view.updateBottomPanel();
+                    SwingUtilities.invokeLater(() -> view.updateBottomPanel());
                 }
 
                 Thread.sleep(100);
@@ -166,13 +177,15 @@ public class GameController {
             }
         }
     }
+
+
     private void spawnUpgrades() {
         Random randomGenerator = new Random();
 
-        while (model.isActive()) {
+        while (model.isGameActive()) {
             try {
 
-                Thread.sleep(5000);
+                Thread.sleep(100);
                 int randomNumber = randomGenerator.nextInt(100);
                 if (randomNumber <= 25) {
                     int[] availableUpgrades = new int[]{1, 2, 3, 4, 5};
@@ -199,7 +212,7 @@ public class GameController {
                             break;
                     }
 
-                    List<GameCharacter> characters = model.getPlayers().stream()
+                    List<GameCharacter> characters = model.getPlayerList().stream()
                             .filter(player -> !(player instanceof Pacman))
                             .toList();
 
@@ -208,7 +221,7 @@ public class GameController {
                     CellUpgrade upgradeCell = new CellUpgrade(selectedCharacter.getRow(), selectedCharacter.getColumn(), selectedUpgrade);
 
                     view.setCellValue(upgradeCell, selectedCharacter.getRow(), selectedCharacter.getColumn());
-                    model.board.cells[selectedCharacter.getRow()][selectedCharacter.getColumn()] = upgradeCell;
+                    model.gameBoard.cells[selectedCharacter.getRow()][selectedCharacter.getColumn()] = upgradeCell;
 
 
                 }
@@ -221,29 +234,33 @@ public class GameController {
         }
     }
 
-    public void setPacmanDirection(Inputs inputs){
+    public void setPacmanDirection(Inputs inputs) {
         Pacman pacman = model.getPacman();
         pacman.setDirection(inputs);
     }
-    public void stopGame(){
+
+    public void stopGame() {
         String name = GameView.askName();
-        scoreController.save(name, model.getScore());
+        scoreController.save(name, model.getCurrentScore());
         view.setVisible(false);
         gameThreads.forEach(Thread::interrupt);
         gameThreads.clear();
-        model.initGame();
+        model.initializeGame();
+        view.updateBottomPanel();
     }
-    public void addScore(int score){
-        if(model.getUpgrades().stream().anyMatch(upgrade -> upgrade instanceof UpgradePointDouble)){
-            model.setScore(model.getScore()+score*2);
-        }else if (model.getUpgrades().stream().anyMatch(upgrade -> upgrade instanceof UpgradePointTriple)){
-            model.setScore(model.getScore()+score*3);
-        } else model.setScore(model.getScore()+score);
+
+    public void addScore(int score) {
+        if (model.getUpgradeList().stream().anyMatch(upgrade -> upgrade instanceof UpgradePointDouble)) {
+            model.setCurrentScore(model.getCurrentScore() + score * 2);
+        } else if (model.getUpgradeList().stream().anyMatch(upgrade -> upgrade instanceof UpgradePointTriple)) {
+            model.setCurrentScore(model.getCurrentScore() + score * 3);
+        } else model.setCurrentScore(model.getCurrentScore() + score);
     }
-    public boolean gameEnd(){
-        for(int i = 0; i < model.getBoard().length; i++){
-            for(int j = 0; j < model.getBoard()[i].length; j++){
-                if(model.getBoard()[i][j] instanceof CellPoint){
+
+    public boolean gameEnd() {
+        for (int i = 0; i < model.getGameBoard().length; i++) {
+            for (int j = 0; j < model.getGameBoard()[i].length; j++) {
+                if (model.getGameBoard()[i][j] instanceof CellPoint) {
                     return false;
                 }
             }

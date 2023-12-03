@@ -37,35 +37,35 @@ public abstract class GameCharacter {
             case Inputs.RIGHT -> newColumn++;
         }
         if (newColumn == -1) {
-            this.column = model.getBoard().length - 1;
+            this.column = model.getGameBoard().length - 1;
             return;
         }
-        if (newColumn == model.getBoard().length) {
+        if (newColumn == model.getGameBoard().length) {
             this.column = 0;
             return;
         }
-        if (model.getBoard()[newRow][newColumn].isMovable()) {
+        if (model.getGameBoard()[newRow][newColumn].isMovable()) {
             this.row = newRow;
             this.column = newColumn;
             setDirection(getRandomDirectionOpposite(model));
 
-        } else if (!(model.getBoard()[newRow][newColumn].isMovable())) {
+        } else if (!(model.getGameBoard()[newRow][newColumn].isMovable())) {
             setDirection(getRandomDirectionOpposite(model));
         }
     }
 
     private Inputs getRandomDirectionOpposite(GameModel model) {
         List<Inputs> inputsList = new ArrayList<>(Arrays.stream(Inputs.values()).filter(x -> x.opposite() != getInputs()).toList());
-        if (!(model.getBoard()[row][column - 1].isMovable())) {
+        if (!(model.getGameBoard()[row][column - 1].isMovable())) {
             inputsList.remove(Inputs.LEFT);
         }
-        if (!(model.getBoard()[row][column + 1].isMovable())) {
+        if (!(model.getGameBoard()[row][column + 1].isMovable())) {
             inputsList.remove(Inputs.RIGHT);
         }
-        if (!(model.getBoard()[row - 1][column].isMovable())) {
+        if (!(model.getGameBoard()[row - 1][column].isMovable())) {
             inputsList.remove(Inputs.UP);
         }
-        if (!(model.getBoard()[row + 1][column].isMovable())) {
+        if (!(model.getGameBoard()[row + 1][column].isMovable())) {
             inputsList.remove(Inputs.DOWN);
         }
         if (inputsList.isEmpty()) {

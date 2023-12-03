@@ -12,6 +12,8 @@ import java.util.List;
 public class GameTableRenderer extends DefaultTableCellRenderer {
     private List<GameCharacter> characters;
     final long startNanoTime = System.nanoTime();
+
+
     public GameTableRenderer(List<GameCharacter> characters) {
         this.characters = characters;
     }
@@ -20,44 +22,74 @@ public class GameTableRenderer extends DefaultTableCellRenderer {
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-
         try {
             Cell cellValue = (Cell) value;
-            GameCharacter gameCharacter = characters.stream().filter(player1 -> player1.getColumn()==column && player1.getRow()==row).findFirst().orElse(null);
-            if(gameCharacter!=null){
-                double t = (System.nanoTime() - startNanoTime) / 1000000000.0;
-                setBackground(Color.BLACK);
-                setText("");
-                setIcon(new ImageIcon(gameCharacter.getAnimated().getFrame(t)));
-                setHorizontalAlignment(JLabel.CENTER);
-                return this;
+            GameCharacter gameCharacter = findCharacterAt(row, column);
+            if (gameCharacter != null) {
+                updateCellForCharacter(gameCharacter);
+            } else {
+                updateCellForCellType(cellValue);
             }
-
-
-            if (cellValue instanceof CellWall) {
-                setBackground(Color.ORANGE);
-                setText("");
-                setIcon(null);
-            } else if (cellValue instanceof CellPoint) {
-                setBackground(Color.BLACK);
-                setForeground(Color.ORANGE);
-                table.setFont(new Font("Serif", Font.BOLD, 15));
-                setText("·");
-                setIcon(null);
-            }else if(cellValue instanceof CellEmpty){
-                setBackground(Color.BLACK);
-                setText("");
-                setIcon(null);
-            }else {
-                setBackground(Color.BLACK);
-                setText("");
-                setIcon(new ImageIcon(((CellUpgrade) cellValue).getUpgrade().getImage()));
-                setHorizontalAlignment(JLabel.CENTER);
-            }
-        }
-        catch (Exception e){
-            //
+        } catch (Exception e) {
+            handleException(e);
         }
         return this;
     }
+    private GameCharacter findCharacterAt(int row, int column) {
+        return characters.stream()
+                .filter(player -> player.getColumn() == column && player.getRow() == row)
+                .findFirst()
+                .orElse(null);
+    }
+    private void updateCellForCharacter(GameCharacter gameCharacter) {
+        double elapsedTimeSeconds = (System.nanoTime() - startNanoTime) / 1000000000.0;
+        setBackground(Color.BLACK);
+        setText("");
+        setIcon(new ImageIcon(gameCharacter.getAnimated().getFrame(elapsedTimeSeconds)));
+        setHorizontalAlignment(JLabel.CENTER);
+    }
+    private void updateCellForCellType(Cell cellValue) {
+        setBackground(Color.BLACK);
+        if (cellValue instanceof CellWall) {
+            updateCellForWall();
+        } else if (cellValue instanceof CellPoint) {
+            updateCellForPoint();
+        } else if (cellValue instanceof CellEmpty) {
+            updateCellForEmpty();
+        } else if (cellValue instanceof CellUpgrade) {
+            updateCellForUpgrade((CellUpgrade) cellValue);
+        }
+    }
+    private void updateCellForWall() {
+        setBackground(Color.ORANGE);
+        setText("");
+        setIcon(null);
+    }
+
+    private void updateCellForPoint() {
+        setBackground(Color.BLACK);
+        setForeground(Color.ORANGE);
+        setFont(new Font("Serif", Font.BOLD, 15));
+        setText("·");
+        setIcon(null);
+    }
+
+    private void updateCellForEmpty() {
+        setBackground(Color.BLACK);
+        setText("");
+        setIcon(null);
+    }
+
+    private void updateCellForUpgrade(CellUpgrade cellUpgrade) {
+        setBackground(Color.BLACK);
+        setText("");
+        setIcon(new ImageIcon(cellUpgrade.getUpgrade().getImage()));
+        setHorizontalAlignment(JLabel.CENTER);
+    }
+
+    private void handleException(Exception e) {
+        e.printStackTrace();
+    }
+
+
 }

@@ -14,16 +14,16 @@ public class ScoreView extends JFrame {
         scroll.setViewportView(list);
         list.setLayoutOrientation(JList.VERTICAL);
         list.setBackground(Color.BLACK);
-        list.setForeground(Color.blue);
+        list.setForeground(Color.BLUE);
         list.setFont(new Font("Monospaced", Font.PLAIN, 25));
         add(scroll);
 
         ImageIcon icon = new ImageIcon("src/resources/blueGhostDown.png");
         setIconImage(icon.getImage());
+    }
 
-        setSize(600, 600);
-        setTitle("Scores");
-        setLocationRelativeTo(null);
+    public JComponent getScoreComponent() {
+        return list;
     }
 
     public void updateScores() {
@@ -31,10 +31,14 @@ public class ScoreView extends JFrame {
         for (int i = 0; i < model.getScores().size(); i++) {
             modelList.addElement(model.getScores().get(i).toString());
         }
-        list.setModel(modelList);
+
+        SwingUtilities.invokeLater(() -> list.setModel(modelList));
     }
 
     public void showScore() {
+        setSize(600, 600);
+        setTitle("Scores");
+        setLocationRelativeTo(null);
         setVisible(true);
     }
 }

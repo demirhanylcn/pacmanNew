@@ -24,18 +24,17 @@ public class GameView extends JFrame {
         setTitle("Pac-Man");
         JPanel upPanel = new JPanel(new FlowLayout());
 
-        ImageIcon icon = new ImageIcon("src/resources/redGhostLeft.png");
-        setIconImage(icon.getImage());
-
         score = new JLabel("", SwingConstants.CENTER);
         score.setForeground(Color.WHITE);
         upPanel.add(score);
         upPanel.setBackground(Color.BLACK);
         updateScore();
-        setResizable(false);
-        tableModel = new GameBoardTableModel(model.board);
+        tableModel = new GameBoardTableModel(model.gameBoard);
+
+
+
         gameBoardTable = new JTable(tableModel);
-        gameBoardTable.setDefaultRenderer(Object.class, new GameTableRenderer(model.getPlayers()));
+        gameBoardTable.setDefaultRenderer(Object.class, new GameTableRenderer(model.getPlayerList()));
         int blockSize = 30;
         configureGameBoardTable(blockSize);
 
@@ -44,12 +43,6 @@ public class GameView extends JFrame {
             @Override
             public void keyPressed(KeyEvent e) {
                 handleKeyPressed(e);
-            }
-        });
-
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
                 handleSpecialKeyPressed(e);
             }
         });
@@ -58,6 +51,9 @@ public class GameView extends JFrame {
         add(gameBoardTable, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
         setMinimumSize(new Dimension(600, 600));
+
+        ImageIcon icon = new ImageIcon("src/resources/redGhostLeft.png");
+        setIconImage(icon.getImage());
 
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
@@ -86,13 +82,14 @@ public class GameView extends JFrame {
     }
 
     public void updateScore() {
-        score.setText("Score : " + model.getScore());
+        score.setText("Score : " + model.getCurrentScore());
     }
 
     public void updateBottomPanel() {
         bottomPanel.removeAll();
         bottomPanel.revalidate();
         bottomPanel.repaint();
+
         JPanel health = new JPanel(new FlowLayout(FlowLayout.LEADING));
         configurePanel(health);
 
@@ -140,6 +137,8 @@ public class GameView extends JFrame {
         gameBoardTable.setRowHeight(blockSize);
         gameBoardTable.setFocusable(false);
         gameBoardTable.setShowGrid(false);
+        gameBoardTable.setShowVerticalLines(false);
+        gameBoardTable.setShowHorizontalLines(false);
         gameBoardTable.setRowMargin(0);
         gameBoardTable.getColumnModel().setColumnMargin(0);
 
@@ -175,15 +174,15 @@ public class GameView extends JFrame {
     }
 
     private void addHealthIcons(JPanel health) {
-        for (int i = 0; i < model.getHealth(); i++) {
+        for (int i = 0; i < model.getCurrentHealth(); i++) {
             health.add(new JLabel(new ImageIcon("src/resources/heart.png")));
         }
         bottomPanel.add(health, BorderLayout.WEST);
     }
 
     private void addBonusIcons(JPanel bonuses) {
-        for (int i = 0; i < model.getUpgrades().size(); i++) {
-            bonuses.add(new JLabel(new ImageIcon(model.getUpgrades().get(i).getImage())));
+        for (int i = 0; i < model.getUpgradeList().size(); i++) {
+            bonuses.add(new JLabel(new ImageIcon(model.getUpgradeList().get(i).getImage())));
         }
         bottomPanel.add(bonuses, BorderLayout.EAST);
     }

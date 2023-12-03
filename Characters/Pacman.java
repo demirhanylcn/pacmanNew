@@ -28,14 +28,14 @@ public class Pacman extends GameCharacter {
             case Inputs.RIGHT -> newColumn++;
         }
         if(newColumn==-1){
-            this.column = model.getBoard().length-1;
+            this.column = model.getGameBoard().length-1;
             return;
         }
-        if(newColumn==model.getBoard().length){
+        if(newColumn==model.getGameBoard().length){
             this.column = 0;
             return;
         }
-        if (model.getBoard()[newRow][newColumn].isMovable()) {
+        if (model.getGameBoard()[newRow][newColumn].isMovable()) {
             setColumn(newColumn);
             setRow(newRow);
         }
